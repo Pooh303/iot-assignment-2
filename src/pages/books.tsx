@@ -1,5 +1,5 @@
 import Layout from "../components/layout";
-import cafeBackgroundImage from "../assets/images/bg-cafe-2.jpg";
+import libraryBackgroundImage from "../assets/images/bg-lb.jpg";
 import useSWR from "swr";
 import { Book } from "../lib/models";
 import Loading from "../components/loading";
@@ -14,9 +14,9 @@ export default function BooksPage() {
     <>
       <Layout>
         <section
-          className="h-[500px] w-full text-white bg-orange-800 bg-cover bg-blend-multiply flex flex-col justify-center items-center px-4 text-center"
+          className="h-[500px] w-full text-white bg-blue-800 bg-cover bg-blend-multiply flex flex-col justify-center items-center px-4 text-center"
           style={{
-            backgroundImage: `url(${cafeBackgroundImage})`,
+            backgroundImage: `url(${libraryBackgroundImage})`,
           }}
         >
           <h1 className="text-5xl mb-2">หนังสือ</h1>
@@ -28,12 +28,15 @@ export default function BooksPage() {
             <h1>รายการหนังสือ</h1>
 
             <Button
+              radius="md"
               component={Link}
               leftSection={<IconPlus />}
               to="/books/create"
-              size="xs"
-              variant="primary"
-              className="flex items-center space-x-2"
+              size="sm"
+              // variant="primary"
+              className="flex items-center space-x-2 transform transition-transform duration-50 hover:scale-110"
+              variant="gradient"
+              gradient={{ from: 'cyan', to: 'blue', deg: 90 }}
             >
               เพิ่มหนังสือ
             </Button>
@@ -50,11 +53,11 @@ export default function BooksPage() {
             </Alert>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 pt-5">
             {books?.map((book) => (
-              <div className="border border-solid border-neutral-200" key={book.id}>
+              <div className="border border-solid border-neutral-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 ease-in-out" key={book.id}>
                 <img
-                  src="https://placehold.co/150x200"
+                  src={book.cover ? book.cover : "https://placehold.co/150x200"}
                   alt={book.title}
                   className="w-full object-cover aspect-[3/4]"
                 />
@@ -64,7 +67,7 @@ export default function BooksPage() {
                 </div>
 
                 <div className="flex justify-end px-4 pb-2">
-                  <Button component={Link} to={`/books/${book.id}`} size="xs" variant="default">
+                  <Button component={Link} to={`/books/${book.id}`} size="xs" variant="default" radius="md">
                     ดูรายละเอียด
                   </Button>
                 </div>

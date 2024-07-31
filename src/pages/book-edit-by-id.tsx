@@ -2,30 +2,45 @@ import useSWR from "swr";
 import { Book } from "../lib/models";
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "../components/layout";
-import { Alert, Button, Checkbox, Container, Divider, NumberInput, TextInput } from "@mantine/core";
+import { Alert, Button, Container, Divider, NumberInput, TextInput, Textarea, Switch, TagsInput } from "@mantine/core";
 import Loading from "../components/loading";
-import { IconAlertTriangleFilled, IconTrash } from "@tabler/icons-react";
+import { IconAlertTriangleFilled, IconTrash, IconDeviceFloppy } from "@tabler/icons-react";
 import { isNotEmpty, useForm } from "@mantine/form";
 import { useEffect, useState } from "react";
 import axios, { AxiosError } from "axios";
 import { notifications } from "@mantine/notifications";
 import { modals } from "@mantine/modals";
+import { IconCheck, IconX } from '@tabler/icons-react';
+import { rem } from '@mantine/core';
+import { useMantineTheme } from '@mantine/core';
+
+interface BookFormValues {
+  title: string;
+  author: string;
+  year: number;
+  is_published: boolean;
+  category: string;
+  cover: string;
+}
 
 export default function BookEditById() {
   const { bookId } = useParams();
   const navigate = useNavigate();
 
   const [isProcessing, setIsProcessing] = useState(false);
-
   const { data: book, isLoading, error } = useSWR<Book>(`/books/${bookId}`);
   const [isSetInitialValues, setIsSetInitialValues] = useState(false);
 
-  const bookEditForm = useForm({
+  const theme = useMantineTheme();
+
+  const bookEditForm = useForm<BookFormValues>({
     initialValues: {
       title: "",
       author: "",
       year: 2024,
       is_published: false,
+      category: "",
+      cover: "",
     },
 
     validate: {
@@ -35,7 +50,15 @@ export default function BookEditById() {
     },
   });
 
-  const handleSubmit = async (values: typeof bookEditForm.values) => {
+  useEffect(() => {
+    if (book && !isSetInitialValues) {
+      bookEditForm.setInitialValues(book);
+      bookEditForm.setValues(book);
+      setIsSetInitialValues(true);
+    }
+  }, [book, bookEditForm, isSetInitialValues]);
+
+  const handleSubmit = async (values: BookFormValues) => {
     try {
       setIsProcessing(true);
       await axios.patch(`/books/${bookId}`, values);
@@ -76,7 +99,7 @@ export default function BookEditById() {
     } finally {
       setIsProcessing(false);
     }
-  };
+  };  
 
   const handleDelete = async () => {
     try {
@@ -85,7 +108,7 @@ export default function BookEditById() {
       notifications.show({
         title: "ลบหนังสือสำเร็จ",
         message: "ลบหนังสือเล่มนี้ออกจากระบบเรียบร้อยแล้ว",
-        color: "red",
+        color: "teal",
       });
       navigate("/books");
     } catch (error) {
@@ -115,19 +138,18 @@ export default function BookEditById() {
     }
   };
 
-  useEffect(() => {
-    if (!isSetInitialValues && book) {
-      bookEditForm.setInitialValues(book);
-      bookEditForm.setValues(book);
-      setIsSetInitialValues(true);
-    }
-  }, [book, bookEditForm, isSetInitialValues]);
-
   return (
     <>
       <Layout>
         <Container className="mt-8">
-          <h1 className="text-xl">แก้ไขข้อมูลหนังสือ</h1>
+          <Button
+            className="relative my-4"
+            variant="transparent"
+            onClick={() => navigate(-1)}
+          >
+            <IconX size={28} /> ยกเลิก
+          </Button>
+          <h1 className="text-xl pb-4">แก้ไขข้อมูลหนังสือ</h1>
 
           {isLoading && !error && <Loading />}
           {error && (
@@ -142,7 +164,7 @@ export default function BookEditById() {
 
           {!!book && (
             <>
-              <form onSubmit={bookEditForm.onSubmit(handleSubmit)} className="space-y-8">
+              <form onSubmit={bookEditForm.onSubmit(handleSubmit)} className="space-y-6">
                 <TextInput
                   label="ชื่อหนังสือ"
                   placeholder="ชื่อหนังสือ"
@@ -163,30 +185,90 @@ export default function BookEditById() {
                   {...bookEditForm.getInputProps("year")}
                 />
 
-                {/* TODO: เพิ่มรายละเอียดหนังสือ */}
-                {/* TODO: เพิ่มเรื่องย่อ */}
-                {/* TODO: เพิ่มหมวดหมู่(s) */}
+                <Textarea
+                  resize="vertical"
+                  label="คำอธิบาย"
+                  placeholder="เพิ่มคำอธิบาย"
+                  {...bookEditForm.getInputProps("description")}
+                />
 
-                <Checkbox
+                <Textarea
+                  resize="vertical"
+                  label="เรื่องย่อ"
+                  placeholder="เพิ่มเรื่องย่อ"
+                  {...bookEditForm.getInputProps("synopsis")}
+                />
+
+                <TagsInput
+                  label="เพิ่มหมวดหมู่"
+                  placeholder="เลือกหมวดหมู่"
+                  value={bookEditForm.values.category ? bookEditForm.values.category.split(', ') : []}
+                  onChange={(value) => {
+                    // Join the tags with commas and set the formatted string
+                    const formattedValue = value.join(', ');
+                    bookEditForm.setFieldValue("category", formattedValue);
+                  }}
+                  data={[
+                    'นิยาย (Fiction)',
+                    'สารคดี (Non-Fiction)',
+                    'การเรียน (Textbooks)',
+                    'ศิลปะ (Art)',
+                    'สุขภาพและการออกกำลังกาย (Health & Fitness)',
+                    'การพัฒนาตนเอง (Self-Help)',
+                    'ธุรกิจ (Business)',
+                    'การเดินทาง (Travel)',
+                    'การทำอาหาร (Cookbooks)',
+                    'เด็ก (Children\'s Books)',
+                    'การเงินส่วนบุคคล (Personal Finance)',
+                    'วิทยาศาสตร์ (Science)',
+                    'ความรู้ทั่วไป (General Knowledge)',
+                    'การเขียน (Writing)',
+                    'ศาสนาและปรัชญา (Religion & Philosophy)'
+                  ]}
+                />
+
+                <TextInput
+                  label="ภาพหน้าปก"
+                  placeholder="ลิ้งก์สำหรับรูปภาพ"
+                  {...bookEditForm.getInputProps("cover")}
+                />
+
+                <Switch
+                  checked={bookEditForm.values.is_published}
+                  onChange={(event) => bookEditForm.setFieldValue("is_published", event.currentTarget.checked)}
+                  color="teal"
+                  size="md"
                   label="เผยแพร่"
-                  {...bookEditForm.getInputProps("is_published", {
-                    type: "checkbox",
-                  })}
+                  thumbIcon={
+                    bookEditForm.values.is_published ? (
+                      <IconCheck
+                        style={{ width: rem(12), height: rem(12) }}
+                        color={theme.colors.teal[6]}
+                        stroke={3}
+                      />
+                    ) : (
+                      <IconX
+                        style={{ width: rem(12), height: rem(12) }}
+                        color={theme.colors.red[6]}
+                        stroke={3}
+                      />
+                    )
+                  }
                 />
 
                 <Divider />
 
-                <div className="flex justify-between">
+                <div className="flex justify-between pb-10">
                   <Button
                     color="red"
                     leftSection={<IconTrash />}
-                    size="xs"
+                    size="sm"
                     onClick={() => {
                       modals.openConfirmModal({
                         title: "คุณต้องการลบหนังสือเล่มนี้ใช่หรือไม่",
                         children: (
                           <span className="text-xs">
-                            เมื่อคุณดำนเนินการลบหนังสือเล่มนี้แล้ว จะไม่สามารถย้อนกลับได้
+                            เมื่อคุณดำเนินการลบหนังสือเล่มนี้แล้ว จะไม่สามารถย้อนกลับได้
                           </span>
                         ),
                         labels: { confirm: "ลบ", cancel: "ยกเลิก" },
@@ -202,7 +284,8 @@ export default function BookEditById() {
                     ลบหนังสือนี้
                   </Button>
 
-                  <Button type="submit" loading={isLoading || isProcessing}>
+                  <Button size="sm" type="submit" loading={isLoading || isProcessing}
+                    leftSection={<IconDeviceFloppy />}>
                     บันทึกข้อมูล
                   </Button>
                 </div>
